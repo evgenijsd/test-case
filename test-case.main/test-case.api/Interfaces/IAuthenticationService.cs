@@ -1,11 +1,13 @@
 ﻿using test_case.api.Models.Authentication;
+using test_case.api.Models.DTO;
 
 namespace test_case.api.Interfaces
 {
     public interface IAuthenticationService
     {
-        Task<AuthenticationResult> RegisterAsync(string userName, string email, string password);
-        Task<AuthenticationResult> AuthenticateAsync(string userName, string password);
-        Task<AuthenticationResult> RefreshTokenAsync(string refreshToken);
+        Task<AuthenticationData> RegisterAsync(UserRegisterDTO user);
+        Task<AuthenticationData> GenerateTokensAsync(UserLoginDTO userDto);
+        Task<AuthenticationData> RefreshAccessTokenAsync(RefreshTokenDTO refreshToken);
+        Task<bool> ValidateAccessTokenAsync(AccessTokenDTO token);
     }
 }
