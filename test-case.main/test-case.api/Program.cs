@@ -46,18 +46,14 @@ builder.Services.AddDbContext<TestCaseContext>(options => options
     .UseSqlServer(builder.Configuration[ConfigurationConstants.ConnectionString]));
 
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddSingleton<IValidator<UserLoginDTO>, UserLoginDTOValidator>();
 builder.Services.AddSingleton<IValidator<UserRegisterDTO>, UserRegisterDTOValidator>();
 builder.Services.AddSingleton<IValidator<RefreshTokenDTO>, RefreshTokenDTOValidator>();
 builder.Services.AddSingleton<IValidator<AccessTokenDTO>, AccessTokenDTOValidator>();
 builder.Services.AddSingleton<Dictionary<Type, object>>();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-})
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.RequireHttpsMetadata = false;
@@ -94,6 +90,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
