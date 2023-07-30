@@ -1,4 +1,4 @@
-﻿using System.Transactions;
+﻿using test_case.api.Enums;
 
 namespace test_case.api.Models.Transaction
 {

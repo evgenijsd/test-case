@@ -10,5 +10,6 @@ namespace test_case.api.Context
         public TestCaseContext(DbContextOptions<TestCaseContext> options) : base(options) { }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
     }
 }

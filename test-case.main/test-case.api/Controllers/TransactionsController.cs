@@ -1,11 +1,16 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
+using Swashbuckle.AspNetCore.Annotations;
+using test_case.api.Enums;
 using test_case.api.Interfaces;
+using test_case.api.Models.Transaction;
 
 namespace test_case.api.Controllers
 {
     [ApiController]
     [Route("api/transactions")]
+    [Authorize]
     public class TransactionsController : ControllerBase
     {
         private readonly ITransactionService _transactionService;
@@ -16,18 +21,25 @@ namespace test_case.api.Controllers
         }
 
         [HttpPost("import")]
-        [Authorize]
         public async Task<IActionResult> ImportTransactions(IFormFile file)
         {
             await _transactionService.ImportTransactionsAsync(file);
             return Ok("Transactions imported successfully.");
         }
 
-        [HttpPost("test")]
-        [Authorize]
-        public IActionResult Test()
+        [HttpGet("export")]
+        public async Task<IActionResult> ExportTransactionsToCsv([FromQuery] TransactionQuery query)
         {
-            return Ok("Transactions imported successfully.");
+            var csvBytes = await _transactionService.ExportTransactionsToCsvAsync(query);
+
+            return File(csvBytes, "text/csv", "transactions.csv");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTransactions([FromQuery] TransactionFilter filter)
+        {
+
+            return Ok(await _transactionService.GetFilteredTransactionsAsync(filter));
         }
     }
 }
