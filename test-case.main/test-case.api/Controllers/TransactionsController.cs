@@ -41,5 +41,12 @@ namespace test_case.api.Controllers
 
             return Ok(await _transactionService.GetFilteredTransactionsAsync(filter));
         }
+
+        [HttpPost("update-status")]
+        public async Task<IActionResult> UpdateTransactionStatus([FromBody] UpdateTransactionStatusRequest request)
+        {
+            await _transactionService.UpdateTransactionStatusAsync(request.TransactionId, request.NewStatus);
+            return Ok("Transaction status updated successfully.");
+        }
     }
 }

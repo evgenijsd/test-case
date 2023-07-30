@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using test_case.api.Models.DTO;
 using Newtonsoft.Json;
+using test_case.api.Models.Transaction;
 
 namespace test_case.api.Middlewares
 {
@@ -65,7 +66,8 @@ namespace test_case.api.Middlewares
                 modelType == typeof(AccessTokenDTO) || 
                 modelType == typeof(RefreshTokenDTO) || 
                 modelType == typeof(UserLoginDTO) || 
-                modelType == typeof(UserRegisterDTO);
+                modelType == typeof(UserRegisterDTO) ||
+                modelType == typeof(UpdateTransactionStatusRequest);
         }
 
     }

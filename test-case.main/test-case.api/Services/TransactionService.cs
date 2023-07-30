@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Globalization;
 using System.Text;
 using test_case.api.Context;
+using test_case.api.Context.Migrations;
 using test_case.api.Enums;
 using test_case.api.Exceptions;
 using test_case.api.Extensions;
@@ -146,9 +147,25 @@ namespace test_case.api.Services
             await _context.Database.CloseConnectionAsync();
         }
 
-        //public Task UpdateTransactionStatusAsync(int transactionId, TransactionStatus newStatus)
-        //{
-        //    throw new NotImplementedException();
-        //}
+        public async Task UpdateTransactionStatusAsync(int transactionId, string? newStatus)
+        {
+            var transaction = await _context.Transactions.FindAsync(transactionId);
+
+            if (transaction == null)
+            {
+                throw new NotFoundException(nameof(Transaction));
+            }
+
+            var status = (int)Enum.Parse(typeof(TransactionStatus), newStatus!, true);
+
+            var sqlQuery = "UPDATE Transactions SET Status = @status WHERE Id = @id";
+            var parameters = new[]
+            {
+                new SqlParameter("@status", status),
+                new SqlParameter("@id", transactionId)
+            };
+
+            await _context.Database.ExecuteSqlRawAsync(sqlQuery, parameters);
+        }
     }
 }

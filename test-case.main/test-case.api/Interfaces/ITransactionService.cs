@@ -1,4 +1,5 @@
-﻿using test_case.api.Models.Entities;
+﻿using test_case.api.Enums;
+using test_case.api.Models.Entities;
 using test_case.api.Models.Transaction;
 
 namespace test_case.api.Interfaces
@@ -8,6 +9,6 @@ namespace test_case.api.Interfaces
         Task ImportTransactionsAsync(IFormFile file);
         Task<List<Transaction>> GetFilteredTransactionsAsync(TransactionFilter filter);
         Task<byte[]> ExportTransactionsToCsvAsync(TransactionQuery query);
-        //Task UpdateTransactionStatusAsync(int transactionId, TransactionStatus newStatus);
+        Task UpdateTransactionStatusAsync(int transactionId, string? newStatus);
     }
 }
