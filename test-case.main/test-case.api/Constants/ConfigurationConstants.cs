@@ -7,7 +7,6 @@
         public const string Issuer = "JWT:Issuer";
         public const string Audience = "JWT:Audience";
         public const string SecretAccessKey = "JWT:AccessTokenSecret";
-        public const string SecretRefreshKey = "JWT:RefreshTokenSecret";
         public const string AccessTokenExpiration = "JWT:AccessTokenExpirationMinutes";
         public const string RefreshTokenExpiration = "JWT:RefreshTokenExpirationDays";
     }

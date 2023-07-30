@@ -111,9 +111,8 @@ namespace test_case.api.Services
             }
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(GetTokenDescriptor(signingCredentials, user, expires));
 
-            return tokenHandler.WriteToken(token);
+            return tokenHandler.WriteToken(GetTokenDescriptor(signingCredentials, user, expires));
         }
 
         private async Task<string> GenerateRefreshTokenAsync(User user)
@@ -132,12 +131,11 @@ namespace test_case.api.Services
             await _context.SaveChangesAsync();
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(GetTokenDescriptor(signingCredentials, user, expires));
 
-            return tokenHandler.WriteToken(token);
+            return tokenHandler.WriteToken(GetTokenDescriptor(signingCredentials, user, expires));
         }
 
-        private SecurityTokenDescriptor GetTokenDescriptor(SigningCredentials signingCredentials, User user, DateTime expires)
+        private JwtSecurityToken GetTokenDescriptor(SigningCredentials signingCredentials, User user, DateTime expires)
         {
             var claims = new List<Claim>
                 {
@@ -146,14 +144,14 @@ namespace test_case.api.Services
                     new Claim(ClaimTypes.Name, user.UserName!),
                 };
 
-            return new SecurityTokenDescriptor
-            {
-                Issuer = _configuration[ConfigurationConstants.Issuer],
-                Audience = _configuration[ConfigurationConstants.Audience],
-                Subject = new ClaimsIdentity(claims),
-                Expires = expires,
-                SigningCredentials = signingCredentials
-            };
+            return new JwtSecurityToken
+            (
+                issuer: _configuration[ConfigurationConstants.Issuer],
+                audience: _configuration[ConfigurationConstants.Audience],
+                claims: claims,
+                expires: expires,
+                signingCredentials: signingCredentials
+            );
         }
 
         private async Task<User?> ValidateRefreshTokenToUserIdAsync(string token)

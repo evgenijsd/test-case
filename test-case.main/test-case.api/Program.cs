@@ -4,22 +4,29 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Text.Json.Serialization;
 using test_case.api.Constants;
 using test_case.api.Context;
 using test_case.api.Filters;
 using test_case.api.Interfaces;
 using test_case.api.Middlewares;
 using test_case.api.Models.DTO;
+using test_case.api.Models.Transaction;
 using test_case.api.Services;
 using test_case.api.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddMvcCore(options => options.Filters.Add(typeof(CustomExceptionFilterAttribute)));
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
+    c.SchemaFilter<EnumSchemaFilter>();
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -28,36 +35,33 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
     });
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
         {
+            new OpenApiSecurityScheme
             {
-                new OpenApiSecurityScheme
+                Reference = new OpenApiReference
                 {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
-                },
-                new string[] { }
-            }
-        });
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
 });
 builder.Services.AddDbContext<TestCaseContext>(options => options
     .UseSqlServer(builder.Configuration[ConfigurationConstants.ConnectionString]));
 
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddSingleton<IValidator<UserLoginDTO>, UserLoginDTOValidator>();
 builder.Services.AddSingleton<IValidator<UserRegisterDTO>, UserRegisterDTOValidator>();
 builder.Services.AddSingleton<IValidator<RefreshTokenDTO>, RefreshTokenDTOValidator>();
 builder.Services.AddSingleton<IValidator<AccessTokenDTO>, AccessTokenDTOValidator>();
+builder.Services.AddSingleton<IValidator<UpdateTransactionStatusRequest>, UpdateTransactionStatusRequestValidator>();
 builder.Services.AddSingleton<Dictionary<Type, object>>();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-})
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.RequireHttpsMetadata = false;
@@ -85,6 +89,7 @@ validators[typeof(AccessTokenDTO)] = app.Services.GetService<IValidator<AccessTo
 validators[typeof(RefreshTokenDTO)] = app.Services.GetService<IValidator<RefreshTokenDTO>>()!;
 validators[typeof(UserLoginDTO)] = app.Services.GetService<IValidator<UserLoginDTO>>()!;
 validators[typeof(UserRegisterDTO)] = app.Services.GetService<IValidator<UserRegisterDTO>>()!;
+validators[typeof(UpdateTransactionStatusRequest)] = app.Services.GetService<IValidator<UpdateTransactionStatusRequest>>()!;
 
 if (app.Environment.IsDevelopment())
 {
@@ -94,9 +99,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/", () => "test-case");
 
 app.Run();

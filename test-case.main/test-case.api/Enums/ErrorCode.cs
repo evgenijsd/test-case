@@ -6,5 +6,6 @@
         NotFound,
         LoginExists,
         InvalidToken,
+        NoFile,
     }
 }
