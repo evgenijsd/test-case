@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using test_case.api.Constants;
@@ -48,6 +49,10 @@ builder.Services.AddSwaggerGen(c =>
             new string[] { }
         }
     });
+
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+    c.OperationFilter<AddSwaggerResponseAttributesFilter>();
 });
 builder.Services.AddDbContext<TestCaseContext>(options => options
     .UseSqlServer(builder.Configuration[ConfigurationConstants.ConnectionString]));
