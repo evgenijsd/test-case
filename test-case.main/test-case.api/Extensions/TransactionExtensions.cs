@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using test_case.api.Enums;
+using test_case.api.Models.DTO;
 using test_case.api.Models.Entities;
 using test_case.api.Models.Transaction;
 
@@ -18,6 +19,18 @@ namespace test_case.api.Extensions
                 Type = (TransactionType)Enum.Parse(typeof(TransactionType), transaction.Type ?? string.Empty, true),
                 ClientName = transaction.ClientName,
                 Amount = decimal.Parse(amount.Replace(",", "."), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture)
+            };
+        }
+
+        public static TransactionDTO ToTransactionDTO(this Transaction transaction)
+        {
+            return new TransactionDTO
+            {
+                Id = transaction.Id,
+                Status = $"{transaction.Status}",
+                Type = $"{transaction.Type}",
+                ClientName = transaction.ClientName,
+                Amount = $"${transaction.Amount}".Replace(',', '.')
             };
         }
 

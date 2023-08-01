@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Swashbuckle.AspNetCore.Annotations;
 using test_case.api.Enums;
 using test_case.api.Interfaces;
+using test_case.api.Models.DTO;
 using test_case.api.Models.Entities;
 using test_case.api.Models.Transaction;
 
@@ -46,7 +47,6 @@ namespace test_case.api.Controllers
         public async Task<IActionResult> ExportTransactionsToCsv([FromQuery] TransactionQuery query)
         {
             var csvBytes = await _transactionService.ExportTransactionsToCsvAsync(query);
-
             return File(csvBytes, "text/csv", "transactions.csv");
         }
 
@@ -56,17 +56,16 @@ namespace test_case.api.Controllers
         /// <param name="filter">Object with filtering parameters</param>
         [HttpGet("filtered")]
         [SwaggerOperation(Summary = "Get a list of transactions with filtering")]
-        [SwaggerResponse(200, "List of transactions", typeof(List<Transaction>))]
-        public async Task<IActionResult> GetTransactions([FromQuery] TransactionFilter filter)
+        [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
+        public async Task<ActionResult<List<TransactionDTO>>> GetTransactions([FromQuery] TransactionFilter filter)
         {
-
             return Ok(await _transactionService.GetFilteredTransactionsAsync(filter));
         }
 
         /// <summary>
         /// Update the status of a transaction.
         /// </summary>
-        /// <param name="request">Object with data for updating the status</param>
+        /// <param name="request">Object with data for updating the status (Pending, Completed, Canceled)</param>
         [HttpPost("update-status")]
         [SwaggerOperation(Summary = "Update the status of a transaction")]
         [SwaggerResponse(200, "Transaction status updated")]

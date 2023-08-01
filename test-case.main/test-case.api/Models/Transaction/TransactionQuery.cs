@@ -1,7 +1,4 @@
-﻿using System;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using test_case.api.Enums;
+﻿using System.ComponentModel;
 
 namespace test_case.api.Models.Transaction
 {

@@ -2,15 +2,14 @@
 using CsvHelper.Configuration;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Globalization;
 using System.Text;
 using test_case.api.Context;
-using test_case.api.Context.Migrations;
 using test_case.api.Enums;
 using test_case.api.Exceptions;
 using test_case.api.Extensions;
 using test_case.api.Interfaces;
+using test_case.api.Models.DTO;
 using test_case.api.Models.Entities;
 using test_case.api.Models.Transaction;
 using test_case.api.Services.Abstract;
@@ -56,7 +55,7 @@ namespace test_case.api.Services
                         "TransactionId" => $"{transaction.Id}",
                         "Status" => $"{transaction.Status}",
                         "Type" => $"{transaction.Type}",
-                        "ClientName" => $"{transaction.ClientName}",
+                        "ClientName" => transaction.ClientName,
                         "Amount" => $"${transaction.Amount}".Replace(',', '.'),
                         _ => string.Empty,
                     };
@@ -69,7 +68,7 @@ namespace test_case.api.Services
             return csvBytes;
         }
 
-        public async Task<List<Transaction>> GetFilteredTransactionsAsync(TransactionFilter filter)
+        public async Task<List<TransactionDTO>> GetFilteredTransactionsAsync(TransactionFilter filter)
         {
             var sqlQuery = new StringBuilder();
             sqlQuery.AppendLine("SELECT * FROM Transactions WHERE 1=1");
@@ -97,7 +96,7 @@ namespace test_case.api.Services
 
             return await _context.Transactions
                 .FromSqlRaw(sqlQuery.ToString(), parameters.ToArray())
-                .ToListAsync();
+                .Select(transaction => transaction.ToTransactionDTO()).ToListAsync();
         }
 
         public async Task ImportTransactionsAsync(IFormFile file)
