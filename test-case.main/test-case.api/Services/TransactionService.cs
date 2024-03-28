@@ -7,6 +7,7 @@ using System.Data;
 using System.Globalization;
 using System.Text;
 using test_case.api.Context;
+using test_case.api.Context.Migrations;
 using test_case.api.Converter;
 using test_case.api.Exceptions;
 using test_case.api.Extensions;
@@ -27,7 +28,7 @@ namespace test_case.api.Services
         public async Task<byte[]> ExportTransactionsToCsvAsync()
         {
             string sqlQuery = @"
-                SELECT t.TransactionId, c.Name, t.Amount, t.Created
+                SELECT t.TransactionId, c.Name, t.Amount, DATEADD(second, Offset, t.Created) AS Created
                 FROM Transactions t
                 INNER JOIN Clients c ON t.ClientId = c.Id
                 ORDER BY t.Created DESC
@@ -46,9 +47,9 @@ namespace test_case.api.Services
                     return column switch
                     {
                         "TransactionId" => $"{transaction.TransactionId}",
-                        "Name" => $"{transaction.TransactionId}",
+                        "Name" => $"{transaction.Name}",
                         "Amount" => $"${transaction.Amount}".Replace(',', '.'),
-                        "Created" => $"{transaction.Created.ToString("dd.MM.yyyy HH:mm")} +00:00",
+                        "Created" => $"{transaction.Created.ToString("dd.MM.yyyy HH:mm")}",
                         _ => string.Empty,
                     };
                 });
@@ -115,21 +116,37 @@ namespace test_case.api.Services
         public async Task<List<TransactionDTO>> GetTransactionsByUserTimeZone(DateTime dateFrom, DateTime dateTo)
         {
             var timeZoneConverter = new TimeZoneConverter();
-            var zone = DateTimeZoneProviders.Tzdb.GetSystemDefault();
-            var offset = timeZoneConverter.GetOffsetByDateInSeconds(DateTime.UtcNow, zone.Id);
+            var zone = DateTimeZoneProviders.Tzdb.GetSystemDefault().Id;
+            List<DateOffset> dateOffsets = new List<DateOffset>();
 
-            string sqlQuery = @"
-                SELECT t.TransactionId, t.Created, t.Offset, t.TimeZone, t.Amount, c.Name, c.Email
+            for (DateTime date = dateFrom.Date; date <= dateTo.Date; date = date.AddDays(1))
+            {
+                int offset = timeZoneConverter.GetOffsetByDateInSeconds(date, zone);
+                dateOffsets.Add(new DateOffset { Date = date, Offset = offset });
+            }
+
+            var sqlQuery = @"
+                DECLARE @DateOffsets TABLE (Date DATE, Offset INT);" +
+                string.Join(" ", dateOffsets.Select(dateOffset =>
+                    $"INSERT INTO @DateOffsets (Date, Offset) VALUES ('{dateOffset.Date:yyyy-MM-dd HH:mm:ss.fff}', {dateOffset.Offset});")) +
+                @"SELECT t.TransactionId, 
+                    DATEADD(second, Offset, t.Created) AS Created, 
+                    t.Amount, c.Name, c.Email
                 FROM Transactions t
                 JOIN Clients c ON t.ClientId = c.Id
-                WHERE [Offset] = @UserOffset
-                    AND DATEADD(second, [Offset], [Created]) >= @DateFrom 
-                    AND DATEADD(second, [Offset], [Created]) <= @DateTo
+                WHERE DATEADD(second, t.Offset, t.Created) >= @DateFrom 
+                    AND DATEADD(second, t.Offset, t.Created) <= @DateTo
+                    AND EXISTS (
+                        SELECT 1 
+                        FROM @DateOffsets d
+                        WHERE CAST(d.Date AS DATE) = CAST(DATEADD(second, t.Offset, t.Created) AS DATE) AND d.Offset = t.Offset
+                    )
                 ORDER BY t.Created DESC
             ";
 
+            var dateOffsetValues = dateOffsets.Select(d => new { d.Date.Date, d.Offset });
             var transactions = await _dbConnection.QueryAsync<TransactionDTO>(sqlQuery, 
-                new { UserOffset = offset, DateFrom = dateFrom, DateTo = dateTo });
+                    new { DateFrom = dateFrom, DateTo = dateTo });
 
             return transactions.ToList();
         }
@@ -137,7 +154,9 @@ namespace test_case.api.Services
         public async Task<List<TransactionDTO>> GetTransactionsByClientsTimeZones(DateTime dateFrom, DateTime dateTo)
         {
             string sqlQuery = @"
-                SELECT t.TransactionId, t.Created, t.Offset, t.TimeZone, t.Amount, c.Name, c.Email
+                SELECT t.TransactionId, 
+                    DATEADD(second, Offset, t.Created) AS Created, 
+                    t.Amount, c.Name, c.Email
                 FROM Transactions t
                 JOIN Clients c ON t.ClientId = c.Id
                 WHERE DATEADD(second, [Offset], [Created]) >= @DateFrom AND DATEADD(second, [Offset], [Created]) <= @DateTo
@@ -147,6 +166,12 @@ namespace test_case.api.Services
             var transactions = await _dbConnection.QueryAsync<TransactionDTO>(sqlQuery, new { DateFrom = dateFrom, DateTo = dateTo });
 
             return transactions.ToList();
+        }
+
+        public struct DateOffset
+        {
+            public DateTime Date;
+            public int Offset;
         }
     }
 }

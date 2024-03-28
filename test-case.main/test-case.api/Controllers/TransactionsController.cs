@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.SqlServer.Server;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Collections.Generic;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using test_case.api.Interfaces;
@@ -49,6 +51,10 @@ namespace test_case.api.Controllers
             return File(csvBytes, "text/csv", "transactions.csv");
         }
 
+        /// <summary>
+        /// Get the list of transactions in a specified year by user's time zone.
+        /// </summary>
+        /// <param name="year">Year transaction selection parameter</param>
         [HttpGet("user_transactions_year")]
         [SwaggerOperation(Summary = "Get a list of transactions")]
         [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
@@ -59,6 +65,10 @@ namespace test_case.api.Controllers
             return Ok(await _transactionService.GetTransactionsByUserTimeZone(userDateFrom, userDateTo));
         }
 
+        /// <summary>
+        /// Get the list of transactions in a specified year by clients' time zone.
+        /// </summary>
+        /// <param name="year">Year transaction selection parameter</param>
         [HttpGet("clients_transactions_year")]
         [SwaggerOperation(Summary = "Get a list of transactions")]
         [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
@@ -69,6 +79,11 @@ namespace test_case.api.Controllers
             return Ok(await _transactionService.GetTransactionsByClientsTimeZones(userDateFrom, userDateTo));
         }
 
+        /// <summary>
+        /// Get the list of transactions in a specified year and month by user's time zone.
+        /// </summary>
+        /// <param name="year">Year transaction selection parameter</param>
+        /// <param name="month">Month transaction selection parameter</param>
         [HttpGet("user_transactions_month")]
         [SwaggerOperation(Summary = "Get a list of transactions")]
         [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
@@ -80,7 +95,12 @@ namespace test_case.api.Controllers
             return Ok(await _transactionService.GetTransactionsByUserTimeZone(userDateFrom, userDateTo));
         }
 
-        [HttpGet("clients_transactions_month")]
+        /// <summary>
+        /// Get a list of transactions in a specified year and month by customer time zone.
+        /// </summary>
+        /// <param name="year">Year transaction selection parameter</param>
+        /// <param name="month">Month transaction selection parameter</param>
+        [HttpGet("clients_transactions_month")] 
         [SwaggerOperation(Summary = "Get a list of transactions")]
         [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
         public async Task<ActionResult<List<TransactionDTO>>> GetClientsTransactionsMonth([BindRequired] int year, [BindRequired] int month)
@@ -91,6 +111,11 @@ namespace test_case.api.Controllers
             return Ok(await _transactionService.GetTransactionsByClientsTimeZones(userDateFrom, userDateTo));
         }
 
+        /// <summary>
+        /// Get a list of transactions in a specified date range by user's time zone.
+        /// </summary>
+        /// <param name="dateFrom">Parameter range start date</param>
+        /// <param name="dateTo">Parameter range end date</param>
         [HttpGet("transactions/between_dates")]
         [SwaggerOperation(Summary = "Get a list of transactions")]
         [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
@@ -104,6 +129,11 @@ namespace test_case.api.Controllers
             return Ok(await _transactionService.GetTransactionsByUserTimeZone(userDateFrom, userDateTo));
         }
 
+        /// <summary>
+        /// Get a list of transactions in a specified date range by customer time zone.
+        /// </summary>
+        /// <param name="dateFrom">Parameter range start date</param>
+        /// <param name="dateTo">Parameter range end date</param>
         [HttpGet("transactions/between_dates_clients")]
         [SwaggerOperation(Summary = "Get a list of transactions")]
         [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]

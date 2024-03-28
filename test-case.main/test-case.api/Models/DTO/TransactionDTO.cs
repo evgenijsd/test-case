@@ -7,8 +7,6 @@
     {
         public string? TransactionId { get; set; }
         public DateTime Created { get; set; }
-        public int Offset { get; set; }
-        public string? TimeZone { get; set; }
         public decimal Amount { get; set; }        
         public string? Name { get; set; }
         public string? Email { get; set; }
