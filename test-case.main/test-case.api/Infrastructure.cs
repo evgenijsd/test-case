@@ -73,7 +73,6 @@ namespace test_case.api
             builder.Services.AddSingleton<IValidator<UserRegisterDTO>, UserRegisterDTOValidator>();
             builder.Services.AddSingleton<IValidator<RefreshTokenDTO>, RefreshTokenDTOValidator>();
             builder.Services.AddSingleton<IValidator<AccessTokenDTO>, AccessTokenDTOValidator>();
-            builder.Services.AddSingleton<IValidator<UpdateTransactionStatusRequest>, UpdateTransactionStatusRequestValidator>();
             builder.Services.AddSingleton<Dictionary<Type, object>>();
 
             var defaultCulture = new CultureInfo("en-US");
@@ -113,7 +112,6 @@ namespace test_case.api
             validators[typeof(RefreshTokenDTO)] = app.Services.GetService<IValidator<RefreshTokenDTO>>()!;
             validators[typeof(UserLoginDTO)] = app.Services.GetService<IValidator<UserLoginDTO>>()!;
             validators[typeof(UserRegisterDTO)] = app.Services.GetService<IValidator<UserRegisterDTO>>()!;
-            validators[typeof(UpdateTransactionStatusRequest)] = app.Services.GetService<IValidator<UpdateTransactionStatusRequest>>()!;
 
             if (app.Environment.IsDevelopment())
             {

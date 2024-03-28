@@ -66,8 +66,7 @@ namespace test_case.api.Middlewares
                 modelType == typeof(AccessTokenDTO) || 
                 modelType == typeof(RefreshTokenDTO) || 
                 modelType == typeof(UserLoginDTO) || 
-                modelType == typeof(UserRegisterDTO) ||
-                modelType == typeof(UpdateTransactionStatusRequest);
+                modelType == typeof(UserRegisterDTO);
         }
 
     }
