@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -20,7 +21,7 @@ namespace test_case.api.Services
     {
         private readonly IConfiguration _configuration;
 
-        public AuthenticationService(TestCaseContext context, IConfiguration configuration) : base(context)
+        public AuthenticationService(TestCaseContext context, IDbConnection dbConnection, IConfiguration configuration) : base(context, dbConnection)
         {
             _configuration = configuration;
         }

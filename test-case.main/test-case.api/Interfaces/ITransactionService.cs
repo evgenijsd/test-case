@@ -6,8 +6,8 @@ namespace test_case.api.Interfaces
     public interface ITransactionService
     {
         Task ImportTransactionsAsync(IFormFile file);
-        Task<List<TransactionDTO>> GetFilteredTransactionsAsync(TransactionFilter filter);
-        Task<byte[]> ExportTransactionsToCsvAsync(TransactionQuery query);
-        Task UpdateTransactionStatusAsync(int transactionId, string? newStatus);
+        Task<byte[]> ExportTransactionsToCsvAsync();
+        Task<List<TransactionDTO>> GetTransactionsByUserTimeZone(DateTime dateFrom, DateTime dateTo);
+        Task<List<TransactionDTO>> GetTransactionsByClientsTimeZones(DateTime dateFrom, DateTime dateTo);
     }
 }

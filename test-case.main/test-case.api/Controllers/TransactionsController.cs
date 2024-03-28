@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.SqlServer.Server;
 using Swashbuckle.AspNetCore.Annotations;
-using test_case.api.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using test_case.api.Interfaces;
 using test_case.api.Models.DTO;
-using test_case.api.Models.Entities;
-using test_case.api.Models.Transaction;
 
 namespace test_case.api.Controllers
 {
@@ -38,42 +38,83 @@ namespace test_case.api.Controllers
         }
 
         /// <summary>
-        /// Export transactions to a CSV file using filters.
+        /// Export transactions to a CSV file.
         /// </summary>
-        /// <param name="query">Object with filtering parameters</param>
         [HttpGet("export")]
-        [SwaggerOperation(Summary = "Export transactions to a CSV file using filters")]
+        [SwaggerOperation(Summary = "Export transactions to a CSV file")]
         [SwaggerResponse(200, "CSV file with transactions", typeof(byte[]))]
-        public async Task<IActionResult> ExportTransactionsToCsv([FromQuery] TransactionQuery query)
+        public async Task<IActionResult> ExportTransactionsToCsv()
         {
-            var csvBytes = await _transactionService.ExportTransactionsToCsvAsync(query);
+            var csvBytes = await _transactionService.ExportTransactionsToCsvAsync();
             return File(csvBytes, "text/csv", "transactions.csv");
         }
 
-        /// <summary>
-        /// Get a list of transactions with filtering.
-        /// </summary>
-        /// <param name="filter">Object with filtering parameters</param>
-        [HttpGet("filtered")]
-        [SwaggerOperation(Summary = "Get a list of transactions with filtering")]
+        [HttpGet("user_transactions_year")]
+        [SwaggerOperation(Summary = "Get a list of transactions")]
         [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
-        public async Task<ActionResult<List<TransactionDTO>>> GetTransactions([FromQuery] TransactionFilter filter)
+        public async Task<ActionResult<List<TransactionDTO>>> GetTransactionsYear([BindRequired] int year)
         {
-            return Ok(await _transactionService.GetFilteredTransactionsAsync(filter));
+            var userDateFrom = new DateTime(year, 1, 1, 0, 0, 0);
+            var userDateTo = new DateTime(year, 12, 31, 23, 59, 59);
+            return Ok(await _transactionService.GetTransactionsByUserTimeZone(userDateFrom, userDateTo));
         }
 
-        /// <summary>
-        /// Update the status of a transaction.
-        /// </summary>
-        /// <param name="request">Object with data for updating the status (Pending, Completed, Canceled)</param>
-        [HttpPost("update-status")]
-        [SwaggerOperation(Summary = "Update the status of a transaction")]
-        [SwaggerResponse(200, "Transaction status updated")]
-        [SwaggerResponse(400, "Bad request or invalid transaction ID")]
-        public async Task<IActionResult> UpdateTransactionStatus([FromBody] UpdateTransactionStatusRequest request)
+        [HttpGet("clients_transactions_year")]
+        [SwaggerOperation(Summary = "Get a list of transactions")]
+        [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
+        public async Task<ActionResult<List<TransactionDTO>>> GetClientsTransactionsYear([BindRequired] int year)
         {
-            await _transactionService.UpdateTransactionStatusAsync(request.TransactionId, request.NewStatus);
-            return Ok("Transaction status updated successfully.");
+            var userDateFrom = new DateTime(year, 1, 1, 0, 0, 0);
+            var userDateTo = new DateTime(year, 12, 31, 23, 59, 59);
+            return Ok(await _transactionService.GetTransactionsByClientsTimeZones(userDateFrom, userDateTo));
+        }
+
+        [HttpGet("user_transactions_month")]
+        [SwaggerOperation(Summary = "Get a list of transactions")]
+        [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
+        public async Task<ActionResult<List<TransactionDTO>>> GetTransactionsMonth([BindRequired] int year, [BindRequired] int month)
+        {
+            int daysInMonth = DateTime.DaysInMonth(year, month);
+            var userDateFrom = new DateTime(year, month, 1, 0, 0, 0);
+            var userDateTo = new DateTime(year, month, daysInMonth, 23, 59, 59);
+            return Ok(await _transactionService.GetTransactionsByUserTimeZone(userDateFrom, userDateTo));
+        }
+
+        [HttpGet("clients_transactions_month")]
+        [SwaggerOperation(Summary = "Get a list of transactions")]
+        [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
+        public async Task<ActionResult<List<TransactionDTO>>> GetClientsTransactionsMonth([BindRequired] int year, [BindRequired] int month)
+        {
+            int daysInMonth = DateTime.DaysInMonth(year, month);
+            var userDateFrom = new DateTime(year, month, 1, 0, 0, 0);
+            var userDateTo = new DateTime(year, month, daysInMonth, 23, 59, 59);
+            return Ok(await _transactionService.GetTransactionsByClientsTimeZones(userDateFrom, userDateTo));
+        }
+
+        [HttpGet("transactions/between_dates")]
+        [SwaggerOperation(Summary = "Get a list of transactions")]
+        [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
+        public async Task<ActionResult<List<TransactionDTO>>> GetTransactionsBetweenDates(
+            [FromQuery(Name = "Date from: dd.MM.yyyy")] string dateFrom,
+            [FromQuery(Name = "Date to: dd.MM.yyyy")] string dateTo)
+        {
+            var userDateFrom = DateTime.ParseExact(dateFrom, "dd.MM.yyyy", CultureInfo.InvariantCulture).Date;
+            var userDateTo = DateTime.ParseExact(dateTo, "dd.MM.yyyy", CultureInfo.InvariantCulture).Date.AddDays(1).AddTicks(-1);
+
+            return Ok(await _transactionService.GetTransactionsByUserTimeZone(userDateFrom, userDateTo));
+        }
+
+        [HttpGet("transactions/between_dates_clients")]
+        [SwaggerOperation(Summary = "Get a list of transactions")]
+        [SwaggerResponse(200, "List of transactions", typeof(List<TransactionDTO>))]
+        public async Task<ActionResult<List<TransactionDTO>>> GetTransactionsBetweenDatesClients(
+            [FromQuery(Name = "Date from: dd.MM.yyyy")] string dateFrom,
+            [FromQuery(Name = "Date to: dd.MM.yyyy")] string dateTo)
+        {
+            var clientsDateFrom = DateTime.ParseExact(dateFrom, "dd.MM.yyyy", CultureInfo.InvariantCulture).Date;
+            var clientsDateTo = DateTime.ParseExact(dateTo, "dd.MM.yyyy", CultureInfo.InvariantCulture).Date.AddDays(1).AddTicks(-1);
+
+            return Ok(await _transactionService.GetTransactionsByClientsTimeZones(clientsDateFrom, clientsDateTo));
         }
     }
 }

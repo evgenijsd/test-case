@@ -15,6 +15,8 @@ using test_case.api.Models.Transaction;
 using test_case.api.Services;
 using test_case.api.Validators;
 using test_case.api.Middlewares;
+using System.Data;
+using Microsoft.Data.SqlClient;
 
 namespace test_case.api
 {
@@ -62,6 +64,7 @@ namespace test_case.api
             });
             builder.Services.AddDbContext<TestCaseContext>(options => options
                 .UseSqlServer(builder.Configuration[ConfigurationConstants.ConnectionString]));
+            builder.Services.AddTransient<IDbConnection>(_ => new SqlConnection(builder.Configuration[ConfigurationConstants.ConnectionString]));
 
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();

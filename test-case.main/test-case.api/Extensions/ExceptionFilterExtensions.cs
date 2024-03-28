@@ -14,6 +14,7 @@ namespace test_case.api.Extensions
                 LoginExistsException _ => (HttpStatusCode.Unauthorized, ErrorCode.LoginExists),
                 InvalidTokenException _ => (HttpStatusCode.Unauthorized, ErrorCode.InvalidToken),
                 NoFileException _ => (HttpStatusCode.BadRequest, ErrorCode.NoFile),
+                ErrorTimeZoneException _ => (HttpStatusCode.BadRequest, ErrorCode.InvalidZone),
                 _ => (HttpStatusCode.InternalServerError, ErrorCode.General),
             };
         }

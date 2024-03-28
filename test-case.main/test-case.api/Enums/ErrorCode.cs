@@ -7,5 +7,6 @@
         LoginExists,
         InvalidToken,
         NoFile,
+        InvalidZone,
     }
 }
