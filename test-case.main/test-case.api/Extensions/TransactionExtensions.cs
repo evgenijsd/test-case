@@ -17,7 +17,7 @@ namespace test_case.api.Extensions
             var coordinates = transaction.ClientLocation?.Split(",");
             var latitude = double.Parse(coordinates![0].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture);
             var longitude = double.Parse(coordinates![1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture);
-            var timeZone = timeZoneConverter.ConvertCoordinatesToTimeZone(latitude, longitude) ?? "UTC";
+            var timeZone = timeZoneConverter.ConvertCoordinatesToTimeZone(latitude, longitude);
             var date = DateTime.Parse(transaction.TransactionDate!);
 
             return new Transaction
