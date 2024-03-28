@@ -1,11 +1,13 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
-using Microsoft.Data.SqlClient;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
+using NodaTime;
+using System.Data;
 using System.Globalization;
 using System.Text;
 using test_case.api.Context;
-using test_case.api.Enums;
+using test_case.api.Converter;
 using test_case.api.Exceptions;
 using test_case.api.Extensions;
 using test_case.api.Interfaces;
@@ -18,45 +20,35 @@ namespace test_case.api.Services
 {
     public class TransactionService : BaseService, ITransactionService
     {
-        public TransactionService(TestCaseContext context) : base(context)
+        public TransactionService(TestCaseContext context, IDbConnection dbConnection) : base(context, dbConnection)
         {
         }
 
-        public async Task<byte[]> ExportTransactionsToCsvAsync(TransactionQuery query)
+        public async Task<byte[]> ExportTransactionsToCsvAsync()
         {
-            var sqlQuery = new StringBuilder();
-            sqlQuery.AppendLine("SELECT Id, Status, Type, ClientName, Amount " +
-                       "FROM Transactions " +
-                       "WHERE 1=1 ");
+            string sqlQuery = @"
+                SELECT t.TransactionId, c.Name, t.Amount, t.Created
+                FROM Transactions t
+                INNER JOIN Clients c ON t.ClientId = c.Id
+                ORDER BY t.Created DESC
+            ";
 
-            if (!string.IsNullOrEmpty(query.Type))
-            {
-                sqlQuery.AppendLine($"AND Type = {(int)Enum.Parse(typeof(TransactionType), query.Type, true)} ");
-            }
-
-            if (!string.IsNullOrEmpty(query.Status))
-            {
-                sqlQuery.AppendLine($"AND Status = {(int)Enum.Parse(typeof(TransactionStatus), query.Status, true)}");
-            }
-
-            var transactions = await _context.Transactions
-                .FromSqlRaw(sqlQuery.ToString())
-                .ToListAsync();
+            var transactions = await _dbConnection.QueryAsync<ExportCsvModel>(sqlQuery);
 
             var csvData = new StringBuilder();
-            csvData.AppendLine(string.Join(",", query.Columns));
+            var columns = new List<string>() { "TransactionId", "Name", "Amount", "Created" };
+            csvData.AppendLine(string.Join(",", columns));
 
             foreach (var transaction in transactions)
             {
-                var rowValues = query.Columns.Select(column =>
+                var rowValues = columns.Select(column =>
                 {
                     return column switch
                     {
-                        "TransactionId" => $"{transaction.Id}",
-                        "Status" => $"{transaction.Status}",
-                        "Type" => $"{transaction.Type}",
-                        "ClientName" => transaction.ClientName,
+                        "TransactionId" => $"{transaction.TransactionId}",
+                        "Name" => $"{transaction.TransactionId}",
                         "Amount" => $"${transaction.Amount}".Replace(',', '.'),
+                        "Created" => $"{transaction.Created.ToString("dd.MM.yyyy HH:mm")} +00:00",
                         _ => string.Empty,
                     };
                 });
@@ -66,38 +58,7 @@ namespace test_case.api.Services
             var csvBytes = Encoding.UTF8.GetBytes(csvData.ToString());
 
             return csvBytes;
-        }
-
-        public async Task<List<TransactionDTO>> GetFilteredTransactionsAsync(TransactionFilter filter)
-        {
-            var sqlQuery = new StringBuilder();
-            sqlQuery.AppendLine("SELECT * FROM Transactions WHERE 1=1");
-            var parameters = new List<SqlParameter>();
-
-            if (filter.Types.Count > 0)
-            {
-                var types = filter.Types.Select(t => (int)Enum.Parse(typeof(TransactionType), t, true)).ToList();
-                sqlQuery.AppendLine("AND Type IN (" + string.Join(",", types.Select((_, i) => $"@type{i}")) + ")");
-                parameters.AddRange(types.Select((t, i) => new SqlParameter($"@type{i}", t)));
-            }
-
-            if (!string.IsNullOrEmpty(filter.Status))
-            {
-                var transactionStatus = (int)Enum.Parse<TransactionStatus>(filter.Status, true);
-                sqlQuery.AppendLine("AND Status = @status");
-                parameters.Add(new SqlParameter("@status", transactionStatus));
-            }
-
-            if (!string.IsNullOrEmpty(filter.ClientName))
-            {
-                sqlQuery.AppendLine("AND ClientName LIKE '%' + @clientName + '%'");
-                parameters.Add(new SqlParameter("@clientName", filter.ClientName));
-            }
-
-            return await _context.Transactions
-                .FromSqlRaw(sqlQuery.ToString(), parameters.ToArray())
-                .Select(transaction => transaction.ToTransactionDTO()).ToListAsync();
-        }
+        }       
 
         public async Task ImportTransactionsAsync(IFormFile file)
         {
@@ -116,20 +77,27 @@ namespace test_case.api.Services
 
             await foreach (var record in csv.GetRecordsAsync<TransactionCsvModel>())
             {
-                records.Add(record.ToTransaction());
+                var client = await _context.Clients.FirstOrDefaultAsync(x => x.Email == record.Email);
+
+                if (client == null) 
+                {
+                    client = new Client { Name = record.Name, Email = record.Email };
+                    await _context.Clients.AddAsync(client); 
+                }
+                records.Add(record.ToTransaction(client.Id));
             }
 
-            var transactionIds = records.Select(r => r.Id).ToList();
+            await _context.SaveChangesAsync();
+            var transactionIds = records.Select(r => r.TransactionId).ToList(); 
             var existingTransactions = await _context.Transactions
-                .Where(t => transactionIds.Contains(t.Id))
+                .Where(t => transactionIds.Contains(t.TransactionId))
                 .ToListAsync();
 
             await _context.Database.OpenConnectionAsync();
-            await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT dbo.Transactions ON");
 
             foreach (var record in records)
             {
-                var existingTransaction = existingTransactions.FirstOrDefault(t => t.Id == record.Id);
+                var existingTransaction = existingTransactions.FirstOrDefault(t => t.TransactionId == record.TransactionId);
 
                 if (existingTransaction != null)
                 {
@@ -142,29 +110,43 @@ namespace test_case.api.Services
             }
 
             await _context.SaveChangesAsync();
-            await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT dbo.Transactions OFF");
-            await _context.Database.CloseConnectionAsync();
         }
 
-        public async Task UpdateTransactionStatusAsync(int transactionId, string? newStatus)
+        public async Task<List<TransactionDTO>> GetTransactionsByUserTimeZone(DateTime dateFrom, DateTime dateTo)
         {
-            var transaction = await _context.Transactions.FindAsync(transactionId);
+            var timeZoneConverter = new TimeZoneConverter();
+            var zone = DateTimeZoneProviders.Tzdb.GetSystemDefault();
+            var offset = timeZoneConverter.GetOffsetByDateInSeconds(DateTime.UtcNow, zone.Id);
 
-            if (transaction == null)
-            {
-                throw new NotFoundException(nameof(Transaction));
-            }
+            string sqlQuery = @"
+                SELECT t.TransactionId, t.Created, t.Offset, t.TimeZone, t.Amount, c.Name, c.Email
+                FROM Transactions t
+                JOIN Clients c ON t.ClientId = c.Id
+                WHERE [Offset] = @UserOffset
+                    AND DATEADD(second, [Offset], [Created]) >= @DateFrom 
+                    AND DATEADD(second, [Offset], [Created]) <= @DateTo
+                ORDER BY t.Created DESC
+            ";
 
-            var status = (int)Enum.Parse(typeof(TransactionStatus), newStatus!, true);
+            var transactions = await _dbConnection.QueryAsync<TransactionDTO>(sqlQuery, 
+                new { UserOffset = offset, DateFrom = dateFrom, DateTo = dateTo });
 
-            var sqlQuery = "UPDATE Transactions SET Status = @status WHERE Id = @id";
-            var parameters = new[]
-            {
-                new SqlParameter("@status", status),
-                new SqlParameter("@id", transactionId)
-            };
+            return transactions.ToList();
+        }
 
-            await _context.Database.ExecuteSqlRawAsync(sqlQuery, parameters);
+        public async Task<List<TransactionDTO>> GetTransactionsByClientsTimeZones(DateTime dateFrom, DateTime dateTo)
+        {
+            string sqlQuery = @"
+                SELECT t.TransactionId, t.Created, t.Offset, t.TimeZone, t.Amount, c.Name, c.Email
+                FROM Transactions t
+                JOIN Clients c ON t.ClientId = c.Id
+                WHERE DATEADD(second, [Offset], [Created]) >= @DateFrom AND DATEADD(second, [Offset], [Created]) <= @DateTo
+                ORDER BY t.Created DESC
+            ";
+
+            var transactions = await _dbConnection.QueryAsync<TransactionDTO>(sqlQuery, new { DateFrom = dateFrom, DateTo = dateTo });
+
+            return transactions.ToList();
         }
     }
 }

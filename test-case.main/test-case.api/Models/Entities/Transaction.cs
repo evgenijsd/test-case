@@ -1,13 +1,16 @@
-﻿using test_case.api.Enums;
-
-namespace test_case.api.Models.Entities
+﻿namespace test_case.api.Models.Entities
 {
     public class Transaction
     {
         public int Id { get; set; }
-        public TransactionStatus Status { get; set; }
-        public TransactionType Type { get; set; }
-        public string? ClientName { get; set; }
+        public string? TransactionId { get; set; }
+        public DateTime Created { get; set; }
+        public int Offset { get; set; }
+        public string? TimeZone { get; set; }
+        public int ClientId { get; set; }
         public decimal Amount { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+
     }
 }

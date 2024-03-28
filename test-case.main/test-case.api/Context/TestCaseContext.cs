@@ -11,5 +11,6 @@ namespace test_case.api.Context
 
         public DbSet<User> Users { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<Client> Clients { get; set; }
     }
 }

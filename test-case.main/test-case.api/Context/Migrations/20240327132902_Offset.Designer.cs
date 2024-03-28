@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using test_case.api.Context;
 
@@ -11,9 +12,11 @@ using test_case.api.Context;
 namespace test_case.api.Context.Migrations
 {
     [DbContext(typeof(TestCaseContext))]
-    partial class TestCaseContextModelSnapshot : ModelSnapshot
+    [Migration("20240327132902_Offset")]
+    partial class Offset
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -66,9 +69,6 @@ namespace test_case.api.Context.Migrations
 
                     b.Property<int>("Offset")
                         .HasColumnType("int");
-
-                    b.Property<string>("TimeZone")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TransactionId")
                         .HasColumnType("nvarchar(max)");
