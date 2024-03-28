@@ -84,7 +84,7 @@ namespace test_case.api.Services
                     client = new Client { Name = record.Name, Email = record.Email };
                     await _context.Clients.AddAsync(client); 
                 }
-                records.Add(record.ToTransaction(client.Id));
+                records.Add(await record.ToTransactionAsync(client.Id));
             }
 
             await _context.SaveChangesAsync();

@@ -10,14 +10,14 @@ namespace test_case.api.Extensions
 {
     public static class TransactionExtensions
     {
-        public static Transaction ToTransaction(this TransactionCsvModel transaction, int ClientId)
+        public static async Task<Transaction> ToTransactionAsync(this TransactionCsvModel transaction, int ClientId)
         {
             var timeZoneConverter = new TimeZoneConverter();
             var amount = transaction.Amount?.Replace("$", "") ?? string.Empty;
             var coordinates = transaction.ClientLocation?.Split(",");
             var latitude = double.Parse(coordinates![0].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture);
             var longitude = double.Parse(coordinates![1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture);
-            var timeZone = timeZoneConverter.ConvertCoordinatesToTimeZone(latitude, longitude) ?? "UTC";
+            var timeZone = await timeZoneConverter.ConvertCoordinatesToTimeZoneAsync(latitude, longitude);
             var date = DateTime.Parse(transaction.TransactionDate!);
 
             return new Transaction

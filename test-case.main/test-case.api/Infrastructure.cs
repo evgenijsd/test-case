@@ -17,6 +17,7 @@ using test_case.api.Validators;
 using test_case.api.Middlewares;
 using System.Data;
 using Microsoft.Data.SqlClient;
+using System.Globalization;
 
 namespace test_case.api
 {
@@ -109,6 +110,9 @@ namespace test_case.api
             validators[typeof(UserLoginDTO)] = app.Services.GetService<IValidator<UserLoginDTO>>()!;
             validators[typeof(UserRegisterDTO)] = app.Services.GetService<IValidator<UserRegisterDTO>>()!;
             validators[typeof(UpdateTransactionStatusRequest)] = app.Services.GetService<IValidator<UpdateTransactionStatusRequest>>()!;
+            var defaultCulture = new CultureInfo("en-US");
+            CultureInfo.DefaultThreadCurrentCulture = defaultCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = defaultCulture;
 
             if (app.Environment.IsDevelopment())
             {
